@@ -1,6 +1,8 @@
 #ifndef VEC3_H
 #define VEC3_H
 
+// library for working with v3 (point)
+
 class Vec3 {
 
 public:

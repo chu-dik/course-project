@@ -1,8 +1,10 @@
 #include <iostream>
 #include "vec3.h"
 #include <cmath>
-
 using namespace std;
+
+// library for working with v3 (point)
+
 Vec3::Vec3(){
 	x = 0;
 	y = 0;

@@ -6,6 +6,16 @@
 #include "matrix.h"
 using namespace std;
 
+
+// descriptions of objects and light
+
+class Light {
+public:
+    Vec3 position;
+    Vec3 colors;
+    Light(Vec3, Vec3);
+};
+
 enum Type {SPECULAR, DIFFUSED, LIGHT};
 
 class Object {

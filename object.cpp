@@ -5,6 +5,14 @@
 using namespace std;
 
 
+// descriptions of objects and light
+
+//Light
+Light::Light(Vec3 position, Vec3 colors) {
+    this->colors = colors * 255;
+    this->position = position;
+}
+
 // Object
 /*********************************************************************************************************************/
 

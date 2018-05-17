@@ -6,6 +6,8 @@
 #include "vec3.h"
 using namespace std;
 
+//library for working with matrix
+
 enum Affine {ROTATEX,ROTATEY,ROTATEZ,SCALE,TRANSLATE,SHEAR};
 
 class Matrix {

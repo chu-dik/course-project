@@ -1,15 +1,9 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "render.h"
 
 #include <QLabel>
-//#include <QGraphicsScene>
-//#include <QGraphicsView>
-//#include <QImage>
-//#include <QStringListModel>
 #include <math.h>
-//#include <iostream>
-//#include <fstream>
-#include "render.h"
 #include <ctime>
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -17,20 +11,19 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow),
     scene(nullptr),
     QTimage(nullptr)
-  //,LIST_HEAD(nullptr)
 {
     ui->setupUi(this);
 
-    QRectF scene_rect = GetViewRect(); // QRect(0, 0, 400, 400);
+    QRectF scene_rect = GetViewRect();
 
-    scene = new QGraphicsScene(scene_rect);
+    scene = new QGraphicsScene(scene_rect); //canvas
     QTimage = new QImage(scene_rect.width(), scene_rect.height(), QImage::Format_RGB32);
 
     ui->graphicsView->setScene(scene);
 
-    QRectF scene_rect2 = GetViewRect2(); // QRect(0, 0, 400, 400);
+    QRectF scene_rect2 = GetViewRect2();
 
-    scene2 = new QGraphicsScene(scene_rect2);
+    scene2 = new QGraphicsScene(scene_rect2); //color pre view
     QTimage2 = new QImage(scene_rect2.width(), scene_rect2.height(), QImage::Format_RGB32);
 
     ui->graphicsView_2->setScene(scene2);
@@ -76,23 +69,19 @@ void MainWindow::UpdateImage()
 void MainWindow::on_pushButton_clicked()
 {
 //         ...
-    unsigned int start_time =  clock();
+    //unsigned int start_time =  clock();
+
     add_light();
 
     render();
     UpdateImage();
     objects.pop_back();
 
-    unsigned int end_time = clock(); // конечное время
-    unsigned int search_time = end_time - start_time;
+    //unsigned int end_time = clock();
+    //unsigned int search_time = end_time - start_time;
 
-    printf("%d  %d\n", search_time,CLOCKS_PER_SEC);
+    //printf("%d  %d\n", search_time,CLOCKS_PER_SEC);
 }
-
-// #define HEIGHT 480
-// #define WIDTH 640
-// #define RECURSION_DEPTH 5
-// #define TOTAL_SAMPLE 16
 
 struct Camera {
     Vec3 pos;
@@ -105,7 +94,6 @@ struct Camera {
 
 Camera camera;
 
-/* function for recursive raytracer*/
 Vec3 MainWindow::sendRay(Vec3 rayOrigin, Vec3 rayDirection, int level, vector<Object*> objects, vector<Light> lights){
     double intersectPoint = INFINITY;
     bool doesIntersect = false;
@@ -122,34 +110,24 @@ Vec3 MainWindow::sendRay(Vec3 rayOrigin, Vec3 rayDirection, int level, vector<Ob
             }
         }
     }
-    /*no intersection => background color*/
     if(!doesIntersect) return Vec3(0.9);
 
-    /*if there is intersection*/
+
     Vec3 point = rayOrigin + rayDirection * intersectPoint;
     Vec3 normal = intersectObject->getNormal(point);
     Vec3 finalColor(0);
 
-    bool isIn = false;
-    if(normal.dot(rayDirection)>0) {
-        /* ray is inside of the object not valide for triangles - for them one side is in*/
-        normal = normal * -1;
-        isIn = true;
-    }
-
-    /*case if specular object and not reached depth of recursion*/
-
     if(intersectObject->objectType == LIGHT)
         return Vec3(255.0,255.0,0.0);
 
-        /*case if diffused object or recursion depth reached*/
     for(vector<Light>::iterator light = lights.begin() ; light != lights.end(); ++light) {
-        /*checking if ray from light to object is intervened then shadow else light*/
         Vec3 pos = light->position;
         Vec3 lightDir = point - pos;
         lightDir.normalize();
+
         bool shadow = false;
         intersectPoint = INFINITY;
+
         for(vector<Object*>::iterator it = objects.begin() ; it != objects.end(); ++it){
             double point = (*it)->intersectionPoints(pos, lightDir);
             if(point<0) continue;
@@ -164,18 +142,12 @@ Vec3 MainWindow::sendRay(Vec3 rayOrigin, Vec3 rayDirection, int level, vector<Ob
             }
         }
         if(point == (pos + lightDir * intersectPoint)) shadow = false;
+
         if(!shadow) {
             lightDir = lightDir * -1;
             double colorFactor = normal.dot(lightDir);
-            if(colorFactor > 0){
-                /*if diffused object only then phong model for adding up diffused component*/
+            if(colorFactor > 0)
                 finalColor += intersectObject->surfaceColor * light->colors * colorFactor * intersectObject->phongCoeffs.x * sqrt((3/(point - pos).length2()));//pow((1/(point - pos).length2()),3);
-                //intersectObject->surfaceColor.x *= 1.1;
-                //finalColor.x = finalColor.x/1.5 + intersectObject->surfaceColor.x/8;
-                //finalColor.y = finalColor.y/1.5 + intersectObject->surfaceColor.y/8;
-                //finalColor.z = finalColor.z/1.5 + intersectObject->surfaceColor.z/8;
-            }
-            /*if specular object then specular light is added it shows glossiness*/
         }
     }
 
@@ -183,7 +155,7 @@ Vec3 MainWindow::sendRay(Vec3 rayOrigin, Vec3 rayDirection, int level, vector<Ob
 }
 
 void MainWindow::init(vector<Object*> objects, vector<Light> lights){
-    /*Making view transformation matrix using eye, up vector, look at vector*/
+
 /*
 CAMERA
         POS 0 0 0
@@ -199,7 +171,6 @@ CAMERA
     camera.pos = Vec3(0,0,0);
     camera.lookAt = Vec3(0,0,-1);
     camera.up = Vec3(0,1,0);
-    //camera.recursion_depth = 5;
     camera.fov = 50;
     camera.height = scene->height();
     camera.width = scene->width();
@@ -212,22 +183,8 @@ CAMERA
     e.y = v.dot(camera.pos)*-1;
     e.z = n.dot(camera.pos)*-1;
 
-    /*
-    Avw =
-        [u.x, u.y, u.z, e.x]
-        [v.x, v.y, v.z, e.y]
-        [n.x, n.y, n.z, e.z]
-        [ 0,   0, 	0,   1 ]
-    */
     double V[16] = {u.x, u.y, u.z, e.x, v.x, v.y, v.z, e.y, n.x, n.y, n.z, e.z, 0, 0, 0, 1};
     Matrix viewingTransform(V);
-
-    //Vec3 sm;
-    //sm.x = -ui->spinBox_cX->value();
-    //sm.y = -ui->spinBox_cY->value();
-    //sm.z = -ui->spinBox_cZ->value();
-    //Matrix t(TRANSLATE, sm);
-    //viewingTransform = t * viewingTransform;
 
 
     double rad = 57.1744;
@@ -246,7 +203,7 @@ CAMERA
     double aspectRatio = camera.width/(double) camera.height;
     double angle = tan((M_PI/2)*camera.fov/180);
 
-    printf("%f", angle);
+    //printf("%f", angle);
     vector<vector<Vec3> > image(camera.width, vector<Vec3>(camera.height, Vec3()));
     for(int j=0;j<camera.height;++j){
         for(int i=0;i<camera.width;++i){
@@ -254,10 +211,10 @@ CAMERA
             //for(int sample = 0; sample<camera.total_samples; sample++){
 
 
-                double xx = (2 * ((i + 0.5) / camera.width) - 1) * angle * aspectRatio;
-                double yy = (1 - 2 * ((j + 0.5) / camera.height)) * angle;
+                double x = (2 * ((i + 0.5) / camera.width) - 1) * angle * aspectRatio;
+                double y = (1 - 2 * ((j + 0.5) / camera.height)) * angle;
                 //printf("%f %f\n", xx, yy);
-                Vec3 rayDirection(xx, yy, -1);
+                Vec3 rayDirection(x, y, -1);
 
                 /*ray transformation to world coordinate system*/
                 rayDirection = viewingTransform.transform(rayDirection, 0);
@@ -277,21 +234,10 @@ CAMERA
     //lightPoint = viewingTransform*lightPoint;
     //lightPoint.print();
 
-    /*writing into file image.ppm*/
-    //ofstream ofs("./image.ppm", ios::out);
-    //ofs << "P3\n" << camera.width << " " << camera.height << "\n255\n";
-    for(int j=0;j<camera.height;j++) {
-        for(int i=0;i<camera.width;i++){
+    for(int j=0;j<camera.height;j++)
+        for(int i=0;i<camera.width;i++)
             QTimage->setPixel(i,j,qRgb(int(min(1., image[i][j].x)*255),int(min(1., image[i][j].y)*255),int(min(1., image[i][j].z)*255)));
-            //ofs<<int(min(1., image[i][j].x)*255)<<" ";
-            //ofs<<int(min(1., image[i][j].y)*255)<<" ";
-            //ofs<<int(min(1., image[i][j].z)*255)<<" ";
-        }
-        //ofs<<endl;
-    }
-    //ofs.close();
 
-    //QTimage->setPixel(lightPoint.mat[0][1],lightPoint.mat[1][1],qRgb(255,255,0));
 }
 
 void MainWindow::render(){
@@ -318,8 +264,6 @@ void MainWindow::render(){
         (*it)->inverseMatrix = (*it)->transformMatrix.inverse();
         (*it)->transposeMatrix = (*it)->transformMatrix.transpose();
      }
-
-
 
     //lights.pop_back();
    //lights.push_back(Light(Vec3(ui->spinBox_L1->value(), ui->spinBox_L2->value(), ui->spinBox_L3->value(),Vec3(5)));
@@ -434,7 +378,6 @@ void MainWindow::add_cone()
     color.x = ui->Rval->value()/255.0;
     color.y = ui->Gval->value()/255.0;
     color.z = ui->Bval->value()/255.0;
-    //ifs>>center.x>>center.y>>center.z>>upVector.x>>upVector.y>>upVector.z>>alpha>>height>>color.x>>color.y>>color.z>>transparency>>type>>phong.x>>phong.y>>phong.z;
 
     Cone* temp = new Cone(center,Vec3(0,1,0),alpha/57.0,height,color,0,DIFFUSED,current_transform,Vec3(0.5));
     objects.push_back(temp);
@@ -522,7 +465,7 @@ void MainWindow::on_Rval_valueChanged(int arg1)
 {
     for (int x = 0; x < QTimage2->width(); x++)
             for (int y = 0; y < QTimage2->height(); y++)
-    QTimage2->setPixel(x, y,qRgb(ui->Rval->value(),ui->Gval->value(),ui->Bval->value()));
+                QTimage2->setPixel(x, y,qRgb(arg1,ui->Gval->value(),ui->Bval->value()));
     UpdateImage2();
 }
 
@@ -530,7 +473,7 @@ void MainWindow::on_Gval_valueChanged(int arg1)
 {
     for (int x = 0; x < QTimage2->width(); x++)
             for (int y = 0; y < QTimage2->height(); y++)
-                QTimage2->setPixel(x, y,qRgb(ui->Rval->value(),ui->Gval->value(),ui->Bval->value()));
+                QTimage2->setPixel(x, y,qRgb(ui->Rval->value(),arg1,ui->Bval->value()));
     UpdateImage2();
 }
 
@@ -538,7 +481,7 @@ void MainWindow::on_Bval_valueChanged(int arg1)
 {
     for (int x = 0; x < QTimage2->width(); x++)
             for (int y = 0; y < QTimage2->height(); y++)
-                QTimage2->setPixel(x, y,qRgb(ui->Rval->value(),ui->Gval->value(),ui->Bval->value()));
+                QTimage2->setPixel(x, y,qRgb(ui->Rval->value(),ui->Gval->value(),arg1));
     UpdateImage2();
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

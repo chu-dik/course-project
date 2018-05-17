@@ -5,6 +5,8 @@
 #include "matrix.h"
 using namespace std;
 
+//library for working with matrix
+
 Matrix::Matrix() {
 	mat.assign(4,vector<double>(4,0));
 	for (int i=0;i<4;i++) mat[i][i] = 1;

@@ -26,16 +26,12 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
         main.cpp \
         mainwindow.cpp \
-    render.cpp \
-    light.cpp \
     matrix.cpp \
     object.cpp \
     vec3.cpp
 
 HEADERS += \
         mainwindow.h \
-    render.h \
-    light.h \
     matrix.h \
     object.h \
     vec3.h
